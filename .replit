@@ -34,10 +34,14 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 34451
+externalPort = 3001
+
+[[ports]]
 localPort = 38755
 externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
-build = ["npm", "run", "build"]
+run = ["bash", "-c", "cd application && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=5000"]
+build = ["bash", "-c", "cd application && npm ci && npm run build && php artisan config:cache && php artisan route:cache && php artisan view:cache"]
