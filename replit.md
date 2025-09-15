@@ -1,6 +1,9 @@
 # Overview
 
-This is a Laravel-based multi-platform application that appears to be "The Journey" - a community-based platform connecting people through sustainable tourism, cultural exploration, and local entertainment in Morocco. The application serves as a bridge between travelers and local experiences, featuring comprehensive payment processing, multi-language support, and an advertising system.
+This is "The Journey" - a community-based Laravel platform and association that connects people through sustainable tourism, cultural exploration, and local entertainment in Morocco. The platform acts as a bridge between locals, students, professionals, and tourists interested in authentic, responsible, and enriching experiences. It's more than just an event calendar; it's a community hub for discovering, participating in, and contributing to meaningful activities.
+
+## Mission
+"Where adventure meets enlightenment" - The Journey focuses on experiences that are fun, exciting, educational, and culturally insightful.
 
 # User Preferences
 
