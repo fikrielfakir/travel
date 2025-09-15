@@ -18,6 +18,7 @@ use App\Models\AdminNotification;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,17 +39,52 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $general = gs();
+        // Provide safe defaults when running in console or tables don't exist
+        $defaults = (object)[
+            'site_name' => 'Travela',
+            'cur_text' => 'USD',
+            'cur_sym' => '$',
+            'active_template' => 'default',
+            'force_ssl' => false
+        ];
+
+        if ($this->app->runningInConsole()) {
+            $viewShare = [
+                'general' => $defaults,
+                'activeTemplate' => 'presets.default.',
+                'activeTemplateTrue' => 'assets/presets/default/',
+                'language' => collect(),
+                'emptyMessage' => 'No data'
+            ];
+            view()->share($viewShare);
+            Paginator::useBootstrapFour();
+            return;
+        }
+
+        $hasGeneralSettings = Schema::hasTable('general_settings');
+        $hasLanguages = Schema::hasTable('languages');
+        
+        $general = $hasGeneralSettings ? gs() : $defaults;
         $activeTemplate = activeTemplate();
         $viewShare['general'] = $general;
         $viewShare['activeTemplate'] = $activeTemplate;
         $viewShare['activeTemplateTrue'] = activeTemplate(true);
-        $viewShare['language'] = Language::all();
+        $viewShare['language'] = $hasLanguages ? Language::all() : collect();
         $viewShare['emptyMessage'] = 'No data';
         view()->share($viewShare);
 
+        // Only register composers if core tables exist
+        $hasUsers = Schema::hasTable('users');
+        $hasAgencies = Schema::hasTable('agencies');
+        $hasTourPackages = Schema::hasTable('tour_packages');
+        $hasDeposits = Schema::hasTable('deposits');
+        $hasWithdrawals = Schema::hasTable('withdrawals');
+        $hasSupportTickets = Schema::hasTable('support_tickets');
+        $hasAdminNotifications = Schema::hasTable('admin_notifications');
+        $hasFrontends = Schema::hasTable('frontends');
 
-        view()->composer('admin.components.tabs.user', function ($view) {
+        if ($hasUsers) {
+            view()->composer('admin.components.tabs.user', function ($view) {
             $view->with([
                 'bannedUsersCount'           => User::banned()->count(),
                 'emailUnverifiedUsersCount' => User::emailUnverified()->count(),
@@ -57,7 +93,10 @@ class AppServiceProvider extends ServiceProvider
                 'kycPendingUsersCount'   => User::kycPending()->count(),
             ]);
         });
-        view()->composer('admin.components.tabs.agency', function ($view) {
+        }
+        
+        if ($hasAgencies) {
+            view()->composer('admin.components.tabs.agency', function ($view) {
             $view->with([
                 'bannedAgenciesCount'           => Agency::banned()->count(),
                 'emailUnverifiedAgenciesCount' => Agency::emailUnverified()->count(),
@@ -66,8 +105,10 @@ class AppServiceProvider extends ServiceProvider
                 'kycPendingAgenciesCount'   => Agency::kycPending()->count(),
             ]);
         });
-
-        view()->composer('admin.components.tabs.tour_package', function ($view) {
+        }
+        
+        if ($hasTourPackages) {
+            view()->composer('admin.components.tabs.tour_package', function ($view) {
             $view->with([
                 'allTourPackages'      => TourPackage::count(),
                 'myTourPackages'      =>  TourPackage::where('user_type','admin')->count(),
@@ -76,28 +117,40 @@ class AppServiceProvider extends ServiceProvider
           
             ]);
         });
-        view()->composer('admin.components.tabs.deposit', function ($view) {
+        }
+        
+        if ($hasDeposits) {
+            view()->composer('admin.components.tabs.deposit', function ($view) {
             $view->with([
                 'pendingDepositsCount'    => Deposit::pending()->count(),
             ]);
         });
-        view()->composer('admin.components.tabs.withdrawal', function ($view) {
+        }
+        
+        if ($hasWithdrawals) {
+            view()->composer('admin.components.tabs.withdrawal', function ($view) {
             $view->with([
                 'pendingWithdrawCount'    => Withdrawal::pending()->count(),
             ]);
         });
-        view()->composer('admin.components.tabs.ticket', function ($view) {
+        }
+        
+        if ($hasSupportTickets) {
+            view()->composer('admin.components.tabs.ticket', function ($view) {
             $view->with([
                 'pendingTicketCount'         => SupportTicket::where('user_id', '!=', 0)->whereIN('status', [0, 2])->count(),
             ]);
         });
-        view()->composer('admin.components.tabs.agency_ticket', function ($view) {
+
+            view()->composer('admin.components.tabs.agency_ticket', function ($view) {
             $view->with([
                 'pendingTicketCount'    =>  SupportTicket::where('agency_id', '!=', 0)->whereIN('status', [0, 2])->count(),
             ]);
         });
+        }
       
-        view()->composer('admin.components.sidenav', function ($view) {
+        if ($hasUsers && $hasAgencies && $hasSupportTickets && $hasDeposits && $hasWithdrawals && $hasTourPackages) {
+            view()->composer('admin.components.sidenav', function ($view) {
             $view->with([
                 'bannedUsersCount'           => User::banned()->count(),
                 'emailUnverifiedUsersCount' => User::emailUnverified()->count(),
@@ -118,20 +171,25 @@ class AppServiceProvider extends ServiceProvider
                
             ]);
         });
+        }
 
-        view()->composer('admin.components.topnav', function ($view) {
+        if ($hasAdminNotifications) {
+            view()->composer('admin.components.topnav', function ($view) {
             $view->with([
                 'adminNotifications'=>AdminNotification::where('read_status',0)->with('user')->orderBy('id','desc')->take(10)->get(),
                 'adminNotificationCount'=>AdminNotification::where('read_status',0)->count(),
             ]);
         });
+        }
 
-        view()->composer('includes.seo', function ($view) {
+        if ($hasFrontends) {
+            view()->composer('includes.seo', function ($view) {
             $seo = Frontend::where('data_keys', 'seo.data')->first();
             $view->with([
                 'seo' => $seo ? $seo->data_values : $seo,
             ]);
         });
+        }
 
         if($general->force_ssl){
             \URL::forceScheme('https');

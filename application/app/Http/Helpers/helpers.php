@@ -18,6 +18,7 @@ use App\Lib\GoogleAuthenticator;
 use App\Models\TourPackage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 
 function slug($string)
@@ -474,12 +475,49 @@ function dateSorting($arr)
 
 function gs()
 {
-    $general = Cache::get('GeneralSetting');
-    if (!$general) {
-        $general = GeneralSetting::first();
-        Cache::put('GeneralSetting', $general);
-    }
-    return $general;
+    return Cache::remember('GeneralSetting', 3600, function() {
+        try {
+            if (!Schema::hasTable('general_settings')) {
+                return (object)[
+                    'site_name' => 'Travela',
+                    'cur_text' => 'USD',
+                    'cur_sym' => '$',
+                    'active_template' => 'default',
+                    'force_ssl' => false,
+                    'mail_config' => new \stdClass(),
+                    'sms_config' => new \stdClass(),
+                    'global_shortcodes' => new \stdClass(),
+                    'socialite_credentials' => new \stdClass(),
+                    'agency_socialite_credentials' => new \stdClass()
+                ];
+            }
+            return GeneralSetting::first() ?? (object)[
+                'site_name' => 'Travela',
+                'cur_text' => 'USD',
+                'cur_sym' => '$',
+                'active_template' => 'default',
+                'force_ssl' => false,
+                'mail_config' => new \stdClass(),
+                'sms_config' => new \stdClass(),
+                'global_shortcodes' => new \stdClass(),
+                'socialite_credentials' => new \stdClass(),
+                'agency_socialite_credentials' => new \stdClass()
+            ];
+        } catch (\Throwable $e) {
+            return (object)[
+                'site_name' => 'Travela',
+                'cur_text' => 'USD',
+                'cur_sym' => '$',
+                'active_template' => 'default',
+                'force_ssl' => false,
+                'mail_config' => new \stdClass(),
+                'sms_config' => new \stdClass(),
+                'global_shortcodes' => new \stdClass(),
+                'socialite_credentials' => new \stdClass(),
+                'agency_socialite_credentials' => new \stdClass()
+            ];
+        }
+    });
 }
 
 
