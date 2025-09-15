@@ -1,1 +1,1 @@
-<?php $timezone = "America/Vancouver" ?>
+<?php $timezone = "America/Vancouver"; ?>
